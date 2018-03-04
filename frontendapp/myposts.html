@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+
+    <title>Secret Diary</title>
+</head>
+<body>
+<div id="navbar"></div>
+
+<div class="container" id="posts" style="margin-top: 20px; margin-bottom: 76px; padding-top: 56px;">
+    <div class="card" id="new-post">
+        <div class="card-header">
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Title</span>
+                </div>
+                <input type="text" class="form-control" placeholder="Enter title" id="post-title"/>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Diary</span>
+                </div>
+                <textarea class="form-control" id="post-text"></textarea>
+            </div>
+
+            <div class="float-right">
+                <div class="btn-group" style="margin-top: 10px;">
+                    <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown"
+                            aria-haspopup="true" aria-expanded="false" id="dropdown-visibility">
+                        Public
+                    </button>
+                    <div class="dropdown-menu">
+                        <button class="dropdown-item"
+                                onclick="$('#dropdown-visibility').text('Public').removeClass('btn-warning').addClass('btn-success'); ">
+                            Public
+                        </button>
+                        <button class="dropdown-item"
+                                onclick="$('#dropdown-visibility').text('Private').removeClass('btn-success').addClass('btn-warning');">
+                            Private
+                        </button>
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="margin-top: 10px; margin-left: 10px;" onclick="postDiary()">
+                    Post
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="footer"></div>
+<script type="text/javascript" src="/node_modules/jquery/dist/jquery.min.js"></script>
+<script type="text/javascript" src="/node_modules/popper.js/dist/umd/popper.min.js"></script>
+<script type="text/javascript" src="/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+<script type="text/javascript">
+    $(function () {
+        $("#navbar").load("/navbar.html");
+        $("#footer").load("/footer.html");
+
+        if (window.sessionStorage.getItem("auth_token") === null) {
+            window.location.href = "/login.html";
+        }
+
+        $.post("http://localhost:8080/diary/", {"token": window.sessionStorage.getItem("auth_token")}, function (data) {
+            if (data.status) {
+                data.result.forEach(function (post) {
+                    $("#posts").append("<div class='card' style='margin-top: 20px;'>" +
+                        "<div class='card-header'>" +
+                        "<div style='display: inline;'>" + encodeURI(post.author) + "</div>" +
+                        "<p class='float-right'>" + encodeURI(post.publish_date) + "</p>" +
+                        "</div>" +
+                        "<div class='card-body'>" +
+                        "<h5 class='card-title'>" + encodeURI(post.title) + "</h5>" +
+                        "<p class='card-text'>" + encodeURI(post.text) + "</p>" +
+                        "<div class='float-right'>" +
+                        "<button class='btn btn-danger float-right' style='margin-top: 10px; margin-left: 10px' onclick='deletePost(" + encodeURI(post.id) + ")'>Delete</button>" +
+                        "<button class='btn float-right " + (post.public ? "btn-warning" : "btn-success") + "' style='margin-top: 10px;' onclick='changePostPermission(" + encodeURI(post.id) + ", " + post.public + ")'>Make it " + (post.public ? "Private" : "Public") + "</button>" +
+                        "</div></div>");
+                });
+            }
+        });
+    })
+    ;
+
+    var postDiary = function () {
+        $.post("http://localhost:8080/diary/create/", {
+            "token": window.sessionStorage.getItem("auth_token"),
+            "title": document.getElementById("post-title").value,
+            "public": $("#dropdown-visibility").text().toString().trim() === "Public",
+            "text": document.getElementById("post-text").value
+        })
+        ;
+
+        window.location.href = "/myposts.html";
+    };
+
+    var deletePost = function (id) {
+        $.post("http://localhost:8080/diary/delete/", {
+            "token": window.sessionStorage.getItem("auth_token"),
+            "id": id
+        });
+
+        window.location.href = "/myposts.html";
+    };
+
+    var changePostPermission = function (id, originalPermission) {
+        $.post("http://localhost:8080/diary/permission/", {
+            "token": window.sessionStorage.getItem("auth_token"),
+            "id": id,
+            "public": !originalPermission
+        });
+
+        window.location.href = "/myposts.html";
+    };
+</script>
+</body>
+</html>
